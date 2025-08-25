@@ -23,40 +23,44 @@ function build_hamiltonian_E(N, ψ, E_kin, V; E_field=4, q=1.0)
     return H
 end
 
+
+# start from here
+
 # test
-N = 50
-H = build_hamiltonian_E(N, psi_inf, E_inf, potential_well; E_field=E_field, q=1.0)
-
-eigvals, eigvecs = eigen(H)
-
-println("First 5 energies (meV):")
-println(eigvals[1:5])
-
-z_grid = range(-L/2, L/2, length=1000)
-
-function wf_realspace(coeffs, basis_func, zgrid)
-    # Sum over basis functions with the given coefficients
-    [sum(coeffs[n] * basis_func(n, z) for n in 1:length(coeffs)) for z in zgrid]
-end
-
-# Convert energies to meV
-energies = eigvals
-
-# Potential over the same grid, plus the electric field term
-V_grid = [potential_well(z) + E_field * z for z in z_grid]
-
-# Plot potential first
-plot(z_grid, V_grid, label="Potential", lw=2, color=:black)
-
-# Overlay first 4 states
-scale_factor = 500  # arbitrary vertical scaling for visibility
-for k in 1:4
-    ψ_k = abs2.(wf_realspace(eigvecs[:,k], psi_inf, z_grid))
-    plot!(z_grid, scale_factor * ψ_k .+ energies[k], label="n=$k")
-end
-
-xlabel!("z (nm)")
-ylabel!("Energy (meV)")
-
-savefig("quantum_well_states_E_field.png")
-
+# N = 50
+# H = build_hamiltonian_E(N, psi_inf, E_inf, potential_well; E_field=E_field, q=1.0)
+# 
+# eigvals, eigvecs = eigen(H)
+# 
+# println("First 5 energies (meV):")
+# println(eigvals[1:5])
+# 
+# z_grid = range(-L/2, L/2, length=1000)
+# 
+# function wf_realspace(coeffs, basis_func, zgrid)
+#     # Sum over basis functions with the given coefficients
+#     [sum(coeffs[n] * basis_func(n, z) for n in 1:length(coeffs)) for z in zgrid]
+# end
+# 
+# # Convert energies to meV
+# energies = eigvals
+# 
+# # Potential over the same grid, plus the electric field term
+# V_grid = [potential_well(z) + E_field * z for z in z_grid]
+# 
+# # Plot potential first
+# plot(z_grid, V_grid, label="Potential", lw=2, color=:black)
+# 
+# # Overlay first 4 states
+# scale_factor = 500  # arbitrary vertical scaling for visibility
+# for k in 1:4
+#     ψ_k = abs2.(wf_realspace(eigvecs[:,k], psi_inf, z_grid))
+#     plot!(z_grid, scale_factor * ψ_k .+ energies[k], label="n=$k")
+# end
+# 
+# xlabel!("z (nm)")
+# ylabel!("Energy (meV)")
+# 
+# savefig("quantum_well_states_E_field.png")
+# 
+# 
