@@ -2,11 +2,6 @@ using Plots
 
 gr()
 
-const nm = 1e-9                 # metros
-const meV = 1e-3 * 1.60218e-19  # Joules
-const m_e = 9.10938e-31         # kg
-const hbar = 1.05457e-34        # Js
-
 const L = 60.0
 const Z_1 = -11.0
 const Z_2 = -7.0
@@ -18,7 +13,7 @@ const dz = 0.1
 
 z = -L/2:dz:L/2
 
-function V(z::Real)
+function potential_well(z::Real)
     if -L/2 <= z <= Z_1
         return 282.8
     elseif Z_1 < z <= Z_2
@@ -34,6 +29,6 @@ function V(z::Real)
     end
 end
 
-plot(z, V.(z), dpi=300)
+# plot(z, V.(z), dpi=300)
 
-savefig("pozo.png")
+# savefig("pozo.png")
