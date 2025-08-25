@@ -1,7 +1,28 @@
-include("solver2.jl")
+include("Constants.jl")
+include("QuantumWell.jl")
+include("PotentialWell.jl")
 
-# sweep E_field from -5 to 5 in 0.2 increments
-E_fields = -5:0.2:5
+using HDF5
+using Plots
+using QuadGK
+using Unitful
+using LinearAlgebra
+
+using .QuantumWell
+using .PotentialWell
+using .Constants
+
+const L = 60
+
+function dipole_element(coeffs_m::AbstractVector, coeffs_n::AbstractVector, basis_func, L::Real)
+    ψm = QuantumWell.wf_realspace(coeffs_m, basis_func, L)
+    ψn = QuantumWell.wf_realspace(coeffs_n, basis_func, L)
+    val, _ = quadgk(z -> ψm(z) * z * ψn(z), -L/2, L/2)
+    return val
+end
+
+# sweep E_field from -5 to 5 in 0.2 meV/nm increments
+eF_sweep = -5:0.01:5
 
 # build 4 arrays, one for each of the first 4 energies
 energies_1 = Float64[]
@@ -14,56 +35,38 @@ dipole_21_array = Float64[]
 dipole_31_array = Float64[]
 dipole_41_array = Float64[]
 
-# Reconstruct eigenfunction as a function of z
-function ψ_eig_func(n, eigenvecs,)
-    coeffs = myeigvecs[:, n]
-    return z -> sum(coeffs[k] * psi_inf(k, z) for k in 1:N)
-end
+const N = 50
 
+for eF in eF_sweep
+    V(z) = PotentialWell.potential_well(z) + eF * z
 
-for E in E_fields
-    myH = build_hamiltonian_E(N, psi_inf, E_inf, potential_well; E_field=E, q=1.0)
-    myeigvals, myeigvecs = eigen(myH)
-    # calculate dipole transition for the first 3 moments
+    H = QuantumWell.build_hamiltonian(N, QuantumWell.psi_inf, QuantumWell.E_inf, V, L)
+    eigvals, eigvecs = eigen(H)
     # Calculate dipole transitions: <2|z|1>, <3|z|1>, <4|z|1>
-    
-    psi1 = myeigvecs[:, 1] / norm(myeigvecs[:, 1])
-    psi2 = myeigvecs[:, 2] / norm(myeigvecs[:, 2])
-    psi3 = myeigvecs[:, 3] / norm(myeigvecs[:, 3])
-    psi4 = myeigvecs[:, 4] / norm(myeigvecs[:, 4])
 
-    # Reconstruct eigenfunction as a callable function for quadgk
-    ψ_eig_func(n) = z -> sum(myeigvecs[:, n] .* [psi_inf(k, z) for k in 1:N])
-
-    dipole_21, _ = quadgk(z -> ψ_eig_func(2)(z) * z * ψ_eig_func(1)(z), -L/2, L/2)
-    dipole_31, _ = quadgk(z -> ψ_eig_func(3)(z) * z * ψ_eig_func(1)(z), -L/2, L/2)
-    dipole_41, _ = quadgk(z -> ψ_eig_func(4)(z) * z * ψ_eig_func(1)(z), -L/2, L/2)
+    dipole_21 = dipole_element(eigvecs[:,2], eigvecs[:,1], QuantumWell.psi_inf, L)
+    dipole_31 = dipole_element(eigvecs[:,3], eigvecs[:,1], QuantumWell.psi_inf, L)
+    dipole_41 = dipole_element(eigvecs[:,4], eigvecs[:,1], QuantumWell.psi_inf, L)
 
     push!(dipole_21_array, dipole_21)
     push!(dipole_31_array, dipole_31)
     push!(dipole_41_array, dipole_41)
 
-    push!(energies_1, myeigvals[1])
-    push!(energies_2, myeigvals[2])
-    push!(energies_3, myeigvals[3])
-    push!(energies_4, myeigvals[4])
+    push!(energies_1, eigvals[1])
+    push!(energies_2, eigvals[2])
+    push!(energies_3, eigvals[3])
+    push!(energies_4, eigvals[4])
 end
 
-# plot energies as a function of E_field
-using Plots
+# plot(eF_sweep, energies_1, label="n=1", xlabel="E_field (meV/nm)", ylabel="Energy (meV)", legend=:topright)
+# plot!(eF_sweep, energies_2, label="n=2")
+# plot!(eF_sweep, energies_3, label="n=3")
+# plot!(eF_sweep, energies_4, label="n=4")
 
-# plot(E_fields, energies_1, label="n=1", xlabel="E_field (meV/nm)", ylabel="Energy (meV)", legend=:topright)
-# plot!(E_fields, energies_2, label="n=2")
-# plot!(E_fields, energies_3, label="n=3")
-# plot!(E_fields, energies_4, label="n=4")
-# 
-# savefig("quantum_well_energies_vs_E_field.png")
+# savefig("quantum_well_energies_vs_E_field.png") 
 
-# plot dipole transitions as a function of E_field
-using Plots
-
-plot(E_fields, dipole_21_array, label="⟨2|z|1⟩", xlabel="E_field (meV/nm)", ylabel="Dipole Transition (meV/nm)", legend=:topright)
-plot!(E_fields, dipole_31_array, label="⟨3|z|1⟩")
-plot!(E_fields, dipole_41_array, label="⟨4|z|1⟩")
+plot(eF_sweep, dipole_21_array, label="⟨2|z|1⟩", xlabel="E_field (meV/nm)", ylabel="Dipole Transition (meV/nm)", legend=:topright)
+plot!(eF_sweep, dipole_31_array, label="⟨3|z|1⟩")
+plot!(eF_sweep, dipole_41_array, label="⟨4|z|1⟩")
 
 savefig("quantum_well_dipole_transitions_vs_E_field.png")

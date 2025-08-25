@@ -1,66 +1,51 @@
-# modify the potential with an e F x term (applied elec)
-include("solver.jl")
+include("Constants.jl")
+include("QuantumWell.jl")
+include("PotentialWell.jl")
 
-const E_field = 4 # meV/m
+using HDF5
+using Plots
+using QuadGK
+using Unitful
+using LinearAlgebra
+
+using .QuantumWell
+using .PotentialWell
+using .Constants
+
+const L = 60
+
+# to go from V/m to meV/nm, we multiply the whole -eF term together, to get eV / m
+# eV / m = 1000 meV / 1 eV * 1 m / 1e9 nm = 1e6 meV / nm
+# then 4e6 V/m corresponds to 4 meV / nm
+
+const eF = 4 # meV/nm
+
+V(z) = PotentialWell.potential_well(z) + eF * z
 
 
-function build_hamiltonian_E(N, ψ, E_kin, V; E_field=4, q=1.0)
-    H = zeros(N, N)
-    for m in 1:N
-        for n in 1:N
-            if m == n
-                # Kinetic part (diagonal in infinite well basis)
-                H[m, n] += E_kin(n)
-            end
-            # Total potential: original potential + electric field term
-            total_potential(z) = V(z) + E_field * z  # Linear field term
+N = 50
+H = QuantumWell.build_hamiltonian(N, QuantumWell.psi_inf, QuantumWell.E_inf, V, L)
 
-            # Potential matrix element: ⟨m|V|n⟩
-            val, _ = quadgk(z -> ψ(m, z) * total_potential(z) * ψ(n, z), -L/2, L/2)
-            H[m, n] += val
-        end
-    end
-    return H
+eigvals, eigvecs = eigen(H)
+
+# Print first 5 energies
+println("First 5 energies (meV):")
+println(eigvals[1:5])
+
+z_grid = -L/2:0.01:L/2
+
+# plot the well
+plot(z_grid, V.(z_grid), label="Potential+Electric Field", lw=2, color=:black)
+
+# Overlay first 4 states
+scale_factor = 500  # arbitrary vertical scaling for visibility
+for k in 1:4
+    ψk = QuantumWell.wf_realspace(eigvecs[:,k], QuantumWell.psi_inf, L)  # callable ψ(z)
+    ψ_vals = abs2.(ψk.(z_grid))  # evaluate on grid
+    plot!(z_grid, scale_factor * ψ_vals .+ eigvals[k], label="n=$k")
 end
 
+xlabel!("z (nm)")
+ylabel!("Energy (meV)")
 
-# start from here
-
-# test
-# N = 50
-# H = build_hamiltonian_E(N, psi_inf, E_inf, potential_well; E_field=E_field, q=1.0)
-# 
-# eigvals, eigvecs = eigen(H)
-# 
-# println("First 5 energies (meV):")
-# println(eigvals[1:5])
-# 
-# z_grid = range(-L/2, L/2, length=1000)
-# 
-# function wf_realspace(coeffs, basis_func, zgrid)
-#     # Sum over basis functions with the given coefficients
-#     [sum(coeffs[n] * basis_func(n, z) for n in 1:length(coeffs)) for z in zgrid]
-# end
-# 
-# # Convert energies to meV
-# energies = eigvals
-# 
-# # Potential over the same grid, plus the electric field term
-# V_grid = [potential_well(z) + E_field * z for z in z_grid]
-# 
-# # Plot potential first
-# plot(z_grid, V_grid, label="Potential", lw=2, color=:black)
-# 
-# # Overlay first 4 states
-# scale_factor = 500  # arbitrary vertical scaling for visibility
-# for k in 1:4
-#     ψ_k = abs2.(wf_realspace(eigvecs[:,k], psi_inf, z_grid))
-#     plot!(z_grid, scale_factor * ψ_k .+ energies[k], label="n=$k")
-# end
-# 
-# xlabel!("z (nm)")
-# ylabel!("Energy (meV)")
-# 
-# savefig("quantum_well_states_E_field.png")
-# 
-# 
+savefig("QW2.png")

@@ -1,6 +1,5 @@
-using Plots
+module PotentialWell
 
-gr()
 
 const L = 60.0
 const Z_1 = -11.0
@@ -29,6 +28,6 @@ function potential_well(z::Real)
     end
 end
 
-# plot(z, V.(z), dpi=300)
+export potential_well
 
-# savefig("pozo.png")
+end # module
