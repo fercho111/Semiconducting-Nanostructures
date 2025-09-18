@@ -5,6 +5,7 @@ const hbar = 1.05457182e-34
 const m_e = 9.1093837e-31
 const m_eff = 0.067 * m_e
 const nm = 1e-9
+const epsilon_0 = 8.854187817e-12
 
 export electron, hbar, m_e, m_eff, nm
 

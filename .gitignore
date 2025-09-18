@@ -30,3 +30,5 @@ JuliaLocalPreferences.toml
 
 # maybe remove h5 files for the future
 *.h5
+
+info.txt
