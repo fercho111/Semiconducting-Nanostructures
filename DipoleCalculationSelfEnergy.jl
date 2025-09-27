@@ -1,6 +1,6 @@
-include("Constants.jl")
-include("QuantumWell.jl")
-include("PotentialWell.jl")
+include("helpers/Constants.jl")
+include("helpers/QuantumWell.jl")
+include("helpers/PotentialWell.jl")
 
 using HDF5
 using Plots
